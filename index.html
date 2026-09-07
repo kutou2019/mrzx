@@ -69,6 +69,12 @@
     margin-top: 14px; font-size: 17px; color: #86868b;
     font-weight: 400;
   }
+  .hero-content-note {
+    margin-top: 10px; font-size: 14px; color: #0071e3;
+    font-weight: 500; display: inline-block;
+    padding: 4px 14px; background: rgba(0, 113, 227, 0.08);
+    border-radius: 20px;
+  }
   .hero-stats {
     margin-top: 28px; display: flex; justify-content: center; gap: 56px;
     flex-wrap: wrap;
@@ -451,6 +457,7 @@
   <header class="hero">
     <div class="hero-date" id="heroDate">9月7日</div>
     <div class="hero-sub" id="heroWeekday">星期一 · 每日精选资讯</div>
+    <div class="hero-content-note" id="heroContentNote">内容为昨日热点汇总</div>
     <div class="hero-stats">
       <div class="stat-item">
         <div class="stat-num" id="totalCount">65</div>
@@ -3922,6 +3929,7 @@ let currentNewsList = [];
 let previousFilter = "all";
 let previousScrollY = 0;
 let isDetailView = false;
+let contentNote = "内容为昨日热点汇总";
 
 // ===== 工具函数 =====
 function formatDate(dateStr) {
@@ -3975,6 +3983,9 @@ function renderHero() {
   const weekday = getWeekday(currentDate);
   document.getElementById("heroDate").innerHTML = `<span class="month">${month}月</span>${day}日`;
   document.getElementById("heroWeekday").textContent = `${weekday} · 每日精选资讯`;
+  if (typeof contentNote !== 'undefined' && contentNote) {
+    document.getElementById("heroContentNote").textContent = contentNote;
+  }
 
   const data = newsData[currentDate];
   if (data) {

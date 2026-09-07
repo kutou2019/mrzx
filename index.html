@@ -478,9 +478,9 @@
 
 <!-- 详情页视图 -->
 <div class="detail-view" id="detailView">
-  <button class="detail-back" onclick="goHome()">
+  <button class="detail-back" onclick="goBack()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    返回列表
+    返回上一页
   </button>
   <div id="detailContent">
     <!-- 动态生成 -->
@@ -3919,6 +3919,9 @@ const sections = [
 let currentDate = "2026-09-07";
 let currentFilter = "all";
 let currentNewsList = [];
+let previousFilter = "all";
+let previousScrollY = 0;
+let isDetailView = false;
 
 // ===== 工具函数 =====
 function formatDate(dateStr) {
@@ -4048,11 +4051,44 @@ function initDragScroll(container) {
 function goHome() {
   document.getElementById("listView").style.display = "block";
   document.getElementById("detailView").classList.remove("active");
+  isDetailView = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// ===== 显示详情页 =====
-function showDetail(index) {
+// ===== 返回上一页 =====
+function goBack() {
+  history.back();
+}
+
+// ===== 浏览器返回/前进按钮处理 =====
+window.addEventListener('popstate', function(e) {
+  if (e.state && e.state.page === 'detail') {
+    const index = e.state.index;
+    const item = currentNewsList[index];
+    if (item) {
+      isDetailView = true;
+      renderDetailContent(index);
+    }
+  } else {
+    isDetailView = false;
+    currentFilter = previousFilter;
+    const bar = document.getElementById("filterBar");
+    if (bar) {
+      bar.querySelectorAll(".filter-tag").forEach(b => {
+        b.classList.toggle("active", b.dataset.section === currentFilter);
+      });
+    }
+    renderContent();
+    document.getElementById("listView").style.display = "block";
+    document.getElementById("detailView").classList.remove("active");
+    setTimeout(() => {
+      window.scrollTo({ top: previousScrollY, behavior: "auto" });
+    }, 50);
+  }
+});
+
+// ===== 渲染详情页内容 =====
+function renderDetailContent(index) {
   const item = currentNewsList[index];
   if (!item) return;
 
@@ -4070,42 +4106,36 @@ function showDetail(index) {
       <h1 class="detail-title">${item.title}</h1>
       <div class="detail-info">
         <span class="detail-info-item">${clockIcon} ${month}月${day}日 ${weekday}</span>
-        <span class="detail-info-item">${linkIcon} 来源：${item.source}</span>
+        <span class="detail-info-item">${userIcon} 来源：${item.source}</span>
       </div>
     </div>
     <div class="detail-body">
-      ${item.detail ? `
-        <div class="article-content">${item.detail}</div>
-        <div class="detail-source-box">
-          <div class="detail-source-label">信息来源</div>
-          <a class="detail-source-link" href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer">
-            ${linkIcon} ${item.sourceUrl}
-          </a>
-        </div>
-      ` : `
-        <div class="detail-content">${item.content}</div>
-        ${item.data ? `
+      ${item.detail ? `<div class="article-content">${item.detail}</div>` : `
+        <div class="detail-content">
+          <p class="detail-summary">${item.content}</p>
+          ${item.data ? `
           <div class="detail-data-box">
             <div class="detail-data-label">关键数据</div>
             <div class="detail-data-text">${item.data}</div>
           </div>
-        ` : ""}
-        ${item.impact ? `
+          ` : ""}
+          ${item.impact ? `
           <div class="detail-impact-box">
-            <div class="detail-impact-label">影响分析</div>
+            <div class="detail-impact-label">影响点评</div>
             <div class="detail-impact-text">${item.impact}</div>
           </div>
-        ` : ""}
-        <div class="detail-source-box">
-          <div class="detail-source-label">信息来源</div>
-          <a class="detail-source-link" href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer">
-            ${linkIcon} ${item.sourceUrl}
-          </a>
+          ` : ""}
         </div>
       `}
+      <div class="detail-source-box">
+        <div class="detail-source-label">信息来源</div>
+        <a class="detail-source-link" href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer">
+          ${linkIcon} ${item.sourceUrl}
+        </a>
+      </div>
     </div>
     <div class="detail-footer">
-      <p class="detail-footer-tip">点击左上角"返回列表"查看更多资讯</p>
+      <p class="detail-footer-tip">点击左上角"返回上一页"查看更多资讯</p>
     </div>
   `;
 
@@ -4113,6 +4143,21 @@ function showDetail(index) {
   document.getElementById("listView").style.display = "none";
   document.getElementById("detailView").classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ===== 显示详情页 =====
+function showDetail(index, pushHistory = true) {
+  const item = currentNewsList[index];
+  if (!item) return;
+
+  if (pushHistory) {
+    previousFilter = currentFilter;
+    previousScrollY = window.scrollY;
+    isDetailView = true;
+    history.pushState({ page: 'detail', index: index, filter: currentFilter, scrollY: previousScrollY }, '', '#detail-' + index);
+  }
+
+  renderDetailContent(index);
 }
 
 // ===== 渲染内容 =====

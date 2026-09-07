@@ -4590,6 +4590,14 @@ if (nowHour >= 18) {
 } else {
   currentTimeSlot = "morning";
 }
+// 如果当前时间段内容为空，自动切换到另一个时间段
+const initDayData = newsData["2026-09-07"];
+if (initDayData) {
+  const initSlotData = initDayData[currentTimeSlot];
+  if (!initSlotData || Object.keys(initSlotData).length === 0) {
+    currentTimeSlot = currentTimeSlot === "morning" ? "afternoon" : "morning";
+  }
+}
 renderFilterBar();
 setDate("2026-09-07");
 </script>

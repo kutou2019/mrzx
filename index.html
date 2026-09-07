@@ -490,8 +490,8 @@ var _hmt = _hmt || [];
     <div class="hero-date" id="heroDate">9月7日</div>
     <div class="hero-sub" id="heroWeekday">星期一 · 每日精选资讯</div>
     <div class="time-switch" id="timeSwitch">
-      <button class="time-btn" data-time="morning" id="btnMorning">昨日汇总</button>
-      <button class="time-btn active" data-time="afternoon" id="btnAfternoon">今日更新</button>
+      <button class="time-btn" data-time="morning" id="btnMorning">上午</button>
+      <button class="time-btn active" data-time="afternoon" id="btnAfternoon">下午</button>
     </div>
     <div class="hero-content-note" id="heroContentNote">内容为昨日热点汇总</div>
     <div class="hero-stats">
@@ -4476,11 +4476,11 @@ function renderContent() {
     let emptyTitle = "";
     let emptyDesc = "";
     if (currentTimeSlot === "morning") {
-      emptyTitle = "昨日汇总暂无更新";
-      emptyDesc = "昨日热点汇总将于每日6:00后发布，请稍后再查看";
+      emptyTitle = "上午暂无更新";
+      emptyDesc = "上午内容将于每日6:00后发布，请稍后再查看";
     } else {
-      emptyTitle = "今日更新暂无内容";
-      emptyDesc = "今日热点更新将于每日18:00后发布，请稍后再查看";
+      emptyTitle = "下午暂无内容";
+      emptyDesc = "下午内容将于每日18:00后发布，请稍后再查看";
     }
     main.innerHTML = `
       <div class="empty-state">

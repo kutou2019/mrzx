@@ -82,6 +82,61 @@
 
   }
 
+  .nav-search {
+    position: relative;
+    display: flex; align-items: center;
+    width: 200px; height: 32px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-search:focus-within {
+    background: rgba(0,0,0,0.08);
+    width: 260px;
+  }
+
+  .search-icon {
+    width: 16px; height: 16px;
+    margin-left: 10px;
+    color: #86868b;
+    flex-shrink: 0;
+  }
+
+  #searchInput {
+    flex: 1;
+    border: none; outline: none; background: transparent;
+    font-size: 14px; color: #1d1d1f;
+    padding: 0 8px;
+    font-family: inherit;
+  }
+
+  #searchInput::placeholder {
+    color: #86868b;
+  }
+
+  #clearSearch {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: #86868b;
+    padding: 0 10px;
+    line-height: 1;
+  }
+
+  #clearSearch:hover {
+    color: #1d1d1f;
+  }
+
+  .search-result-count {
+    font-size: 13px; color: #86868b;
+    margin-bottom: 16px;
+  }
+
+  .search-highlight {
+    background: #ffeeb0;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
   .nav-date button {
 
     background: none; border: none; cursor: pointer;
@@ -960,6 +1015,15 @@ var _hmt = _hmt || [];
 
       <button id="nextDay" title="后一天">&#8250;</button>
 
+    </div>
+
+    <div class="nav-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="searchInput" placeholder="搜索资讯..." autocomplete="off">
+      <button id="clearSearch" style="display:none;">&times;</button>
     </div>
 
   </div>
@@ -9842,11 +9906,151 @@ function showDetail(index, pushHistory = true) {
 
 // ===== 渲染内容 =====
 
+
+// ===== 搜索功能 =====
+
+let currentSearchQuery = '';
+let searchResults = [];
+
+function highlightText(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp('(' + escaped + ')', 'gi');
+  return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function performSearch(query) {
+  currentSearchQuery = query.trim().toLowerCase();
+  
+  if (!currentSearchQuery) {
+    searchResults = [];
+    document.getElementById('clearSearch').style.display = 'none';
+    renderContent();
+    return;
+  }
+  
+  document.getElementById('clearSearch').style.display = 'block';
+  
+  const dayData = newsData[currentDate];
+  if (!dayData) {
+    searchResults = [];
+    renderContent();
+    return;
+  }
+  
+  const data = dayData[currentTimeSlot];
+  if (!data) {
+    searchResults = [];
+    renderContent();
+    return;
+  }
+  
+  searchResults = [];
+  
+  for (const section in data) {
+    const newsList = data[section];
+    if (!Array.isArray(newsList)) continue;
+    
+    for (const news of newsList) {
+      const titleMatch = news.title && news.title.toLowerCase().includes(currentSearchQuery);
+      const contentMatch = news.content && news.content.toLowerCase().includes(currentSearchQuery);
+      const detailMatch = news.detail && news.detail.toLowerCase().includes(currentSearchQuery);
+      
+      if (titleMatch || contentMatch || detailMatch) {
+        searchResults.push({
+          ...news,
+          section: section
+        });
+      }
+    }
+  }
+  
+  searchResults.sort((a, b) => (b.heat || 0) - (a.heat || 0));
+  
+  renderContent();
+}
+
+function initSearch() {
+  const searchInput = document.getElementById('searchInput');
+  const clearSearch = document.getElementById('clearSearch');
+  
+  let searchTimeout;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch(e.target.value);
+    }, 300);
+  });
+  
+  clearSearch.addEventListener('click', () => {
+    searchInput.value = '';
+    performSearch('');
+    searchInput.focus();
+  });
+  
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      performSearch('');
+      searchInput.blur();
+    }
+  });
+}
+
 function renderContent() {
 
   const main = document.getElementById("mainContent");
 
-  const dayData = newsData[currentDate];
+  
+  // 搜索模式：显示搜索结果
+  if (currentSearchQuery) {
+    main.innerHTML = '';
+    
+    const resultCount = document.createElement('div');
+    resultCount.className = 'search-result-count';
+    resultCount.innerHTML = '搜索 "' + currentSearchQuery + '" 找到 ' + searchResults.length + ' 条结果';
+    main.appendChild(resultCount);
+    
+    if (searchResults.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<div class="empty-state-title">未找到相关资讯</div><div class="empty-state-desc">试试其他关键词吧</div>';
+      main.appendChild(empty);
+      return;
+    }
+    
+    const list = document.createElement('div');
+    list.className = 'news-list';
+    
+    searchResults.forEach((news, index) => {
+      const card = document.createElement('div');
+      card.className = 'news-card';
+      card.onclick = () => openDetail(news, index);
+      
+      const highlightedTitle = highlightText(news.title, currentSearchQuery);
+      const highlightedContent = highlightText(news.content, currentSearchQuery);
+      
+      card.innerHTML = `
+        <div class="news-rank">${index + 1}</div>
+        <div class="news-info">
+          <div class="news-title">${highlightedTitle}</div>
+          <div class="news-content">${highlightedContent}</div>
+          <div class="news-meta">
+            <span class="news-section">${news.section || ''}</span>
+            <span class="news-source">${news.source || ''}</span>
+            <span class="news-heat">热度 ${news.heat || 0}</span>
+          </div>
+        </div>
+        <div class="news-arrow">›</div>
+      `;
+      list.appendChild(card);
+    });
+    
+    main.appendChild(list);
+    return;
+  }
+
+const dayData = newsData[currentDate];
 
   const data = dayData ? dayData[currentTimeSlot] : null;
 
@@ -10128,11 +10332,16 @@ renderFilterBar();
 
 setDate(currentDate);
 
+initSearch();
+
 </script>
 
 </body>
 
 </html>
+
+
+
 
 
 
